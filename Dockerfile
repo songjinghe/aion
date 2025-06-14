@@ -22,4 +22,4 @@ WORKDIR /db/bin/aion
 
 COPY . .
 
-RUN mvn clean install -DskipTests -Dspotless.check.skip -Dlicense.skip -Denforcer.skip -T1C
+RUN mvn -B clean install -DskipTests -Dspotless.check.skip -Dlicense.skip -Denforcer.skip -T1C
