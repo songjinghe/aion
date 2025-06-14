@@ -154,7 +154,8 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>io-test-utils</artifactId>
-            <version>5.9.0-SNAPSHOT</version>
+            <version>${project.version}</version>
+            <!-- <version>5.9.0-SNAPSHOT</version> -->
             <scope>test</scope>
         </dependency>
 
