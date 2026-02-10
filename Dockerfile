@@ -25,11 +25,13 @@ ENV MAVEN_HOME /usr/share/maven
 #  && sdk install java 17.0.7-tem \
 #  && sdk install gradle 8.5 
 
+RUN mkdir -p /database
+
 WORKDIR /db/bin/aion
 
 COPY . .
 
-WORKDIR /db/bin/aion/community/temporal-graph
+WORKDIR /db/bin/aion/community/temporal-graph/scripts
 RUN git clone https://github.com/neo4j/graph-data-science.git \
  && cd graph-data-science \
  && git checkout 2.4.0-alpha06 \
