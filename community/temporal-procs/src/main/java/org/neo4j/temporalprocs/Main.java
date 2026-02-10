@@ -37,7 +37,7 @@ import org.neo4j.temporalgraph.timeindex.timestore.TimeBasedTracker;
 
 public class Main {
 
-    private static final Path DB_PATH = Path.of("target/neo4j-store-with-time-tracking");
+    private static final Path DB_PATH = Path.of("/database");
     private static EntityLineageTracker lineageTracker = null;
     private static TimeBasedTracker timeBasedTracker = null;
 
@@ -47,7 +47,7 @@ public class Main {
                 .withProcedure(LineageStoreProcedures.class)
                 .withProcedure(TimeStoreProcedures.class)
                 .withConfig(BoltConnector.enabled, true)
-                .withConfig(BoltConnector.listen_address, new SocketAddress("localhost", 7687))
+                .withConfig(BoltConnector.listen_address, new SocketAddress("0.0.0.0", 7654))
                 .build();
 
         registerTracker(
@@ -60,9 +60,9 @@ public class Main {
                 1);
 
         var input = new Scanner(System.in);
-        System.out.println("Press 0 to close the server:");
+        System.out.println("input 'exit' to close the server:");
         while (true) {
-            if (input.nextInt() == 0) {
+            if ("EXIT".equalsIgnoreCase(input.nextLine())) {
                 System.out.println("Closing the server...");
                 break;
             }

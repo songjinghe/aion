@@ -20,10 +20,10 @@ RUN wget -nv "https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binar
 
 ENV MAVEN_HOME /usr/share/maven
 
-RUN curl -s "https://get.sdkman.io" | bash \
- && source "$HOME/.sdkman/bin/sdkman-init.sh" \
- && sdk install java 17.0.7-tem \
- && sdk install gradle 8.5 
+# RUN curl -s "https://get.sdkman.io" | bash \
+#  && source "$HOME/.sdkman/bin/sdkman-init.sh" \
+#  && sdk install java 17.0.7-tem \
+#  && sdk install gradle 8.5 
 
 WORKDIR /db/bin/aion
 
@@ -35,12 +35,16 @@ RUN git clone https://github.com/neo4j/graph-data-science.git \
  && git checkout 2.4.0-alpha06 \
  && git apply ../temporal.patch
 
-ENV GRADLE_OPTS "--add-exports jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED"
+# ENV GRADLE_OPTS "--add-exports jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED"
+# RUN ./gradlew :open-packaging:shadowCopy -Pneo4jVersion=5.7.0 -x javadoc
+# RUN ./gradlew publishToMavenLocal -x javadoc
 
-RUN ./gradlew :open-packaging:shadowCopy -Pneo4jVersion=5.7.0 -x javadoc
-RUN ./gradlew publishToMavenLocal -x javadoc
-
-WORKDIR /db/bin/aion/community
+WORKDIR /db/bin/aion
 RUN mvn -B clean install -DskipTests -Dspotless.check.skip -Dlicense.skip -Denforcer.skip -T1C
 
-# ENTRYPOINT ["/db/bin/aion/docker-entrypoint.sh"]
+WORKDIR /db/bin/aion/community/temporal-procs
+RUN mvn -B exec:java -Dexec.mainClass=org.neo4j.temporalprocs.TestMe
+
+WORKDIR /db/bin/aion
+RUN chmod 755 /db/bin/aion/docker-entrypoint.sh
+ENTRYPOINT  ["/db/bin/aion/docker-entrypoint.sh"]
