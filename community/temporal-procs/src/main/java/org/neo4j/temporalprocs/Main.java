@@ -24,6 +24,8 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Scanner;
+import java.util.concurrent.locks.LockSupport;
+
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
@@ -41,7 +43,7 @@ public class Main {
     private static EntityLineageTracker lineageTracker = null;
     private static TimeBasedTracker timeBasedTracker = null;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 
         var embeddedDatabaseServer = Neo4jBuilders.newInProcessBuilder(DB_PATH)
                 .withProcedure(LineageStoreProcedures.class)
@@ -61,18 +63,23 @@ public class Main {
 
         var input = new Scanner(System.in);
         System.out.println("server started on port 7687");
-        while (true) {
-            long lastTxIdOfTimeStore = timeBasedTracker.getLastTransactionId();
-            long lastTimeOfTimeStore = timeBasedTracker.getLastCommittedTime();
-            long lastTxIdOfLineageStore = lineageTracker.getLastTransactionId();
-            long lastTimeOfLineageStore = lineageTracker.getLastCommittedTime();
-            System.out.printf("TimeStore: lastTxId %ld, lastTime %ld; LineageStore: lastTxId %ld, lastTime %ld.%n", 
-                lastTxIdOfTimeStore, lastTimeOfTimeStore, lastTxIdOfLineageStore, lastTimeOfLineageStore);
-            Thread.sleep(120_000);
+        try{
+            while (true) {
+                long lastTxIdOfTimeStore = timeBasedTracker.getLastTransactionId();
+                long lastTimeOfTimeStore = timeBasedTracker.getLastCommittedTime();
+                long lastTxIdOfLineageStore = lineageTracker.getLastTransactionId();
+                long lastTimeOfLineageStore = lineageTracker.getLastCommittedTime();
+                System.out.printf("TimeStore: lastTxId %ld, lastTime %ld; LineageStore: lastTxId %ld, lastTime %ld.%n", 
+                    lastTxIdOfTimeStore, lastTimeOfTimeStore, lastTxIdOfLineageStore, lastTimeOfLineageStore);
+                Thread.sleep(120_000);
+            }
+        } catch (InterruptedException e){
+            System.out.println("DB Server interruptted, exiting...");
         }
 
         closeTrackers();
         embeddedDatabaseServer.close();
+        System.out.println("DB Server closed. process exit.");
     }
 
     private static void registerTracker(DatabaseManagementService dbms, Path dbPath, int type) throws IOException {
