@@ -47,7 +47,7 @@ public class Main {
                 .withProcedure(LineageStoreProcedures.class)
                 .withProcedure(TimeStoreProcedures.class)
                 .withConfig(BoltConnector.enabled, true)
-                .withConfig(BoltConnector.listen_address, new SocketAddress("0.0.0.0", 7654))
+                .withConfig(BoltConnector.listen_address, new SocketAddress("0.0.0.0", 7687))
                 .build();
 
         registerTracker(
@@ -60,12 +60,15 @@ public class Main {
                 1);
 
         var input = new Scanner(System.in);
-        System.out.println("input 'exit' to close the server:");
+        System.out.println("server started on port 7687");
         while (true) {
-            if ("EXIT".equalsIgnoreCase(input.nextLine())) {
-                System.out.println("Closing the server...");
-                break;
-            }
+            long lastTxIdOfTimeStore = timeBasedTracker.getLastTransactionId();
+            long lastTimeOfTimeStore = timeBasedTracker.getLastCommittedTime();
+            long lastTxIdOfLineageStore = lineageTracker.getLastTransactionId();
+            long lastTimeOfLineageStore = lineageTracker.getLastCommittedTime();
+            System.out.printf("TimeStore: lastTxId %ld, lastTime %ld; LineageStore: lastTxId %ld, lastTime %ld.%n", 
+                lastTxIdOfTimeStore, lastTimeOfTimeStore, lastTxIdOfLineageStore, lastTimeOfLineageStore);
+            Thread.sleep(120_000);
         }
 
         closeTrackers();
