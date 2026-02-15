@@ -33,6 +33,9 @@ import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -123,19 +126,18 @@ public class Main {
                 System.out.println("TEST_META node not found, creating...");
                 n = tx.createNode(TEST_META);
                 n.setProperty("TEST_META", "TEST_META");
-            }else{
-                System.out.println("TEST_META node found, checking...");
-                str2id.putAll(a.getNamesToIds());
-                str2id.putAll(b.getNamesToIds());
-                System.out.println(str2id);
-                str2id.forEach((k,v)->{
-                    Integer id = (Integer) n.getProperty(k);
-                    if(id==null || !id.equals(v)){
-                        n.setProperty(k, v);
-                        System.out.println("update TEST_META key("+k+") "+id+" -> "+ v);
-                    }
-                });
             }
+            System.out.println("TEST_META node checking...");
+            str2id.putAll(a.getNamesToIds());
+            str2id.putAll(b.getNamesToIds());
+            System.out.println(str2id);
+            str2id.forEach((k,v)->{
+                Integer id = (Integer) n.getProperty(k);
+                if(id==null || !id.equals(v)){
+                    n.setProperty(k, v);
+                    System.out.println("update TEST_META key("+k+") "+id+" -> "+ v);
+                }
+            });
             tx.success();
         }
     }
