@@ -77,7 +77,7 @@ public class Main {
                 long lastTimeOfTimeStore = timeBasedTracker.getLastCommittedTime();
                 long lastTxIdOfLineageStore = lineageTracker.getLastTransactionId();
                 long lastTimeOfLineageStore = lineageTracker.getLastCommittedTime();
-                System.out.printf("TimeStore: lastTxId %ld, lastTime %ld; LineageStore: lastTxId %ld, lastTime %ld.%n",
+                System.out.printf("TimeStore: lastTxId %s, lastTime %s; LineageStore: lastTxId %s, lastTime %s.%n",
                         lastTxIdOfTimeStore, lastTimeOfTimeStore, lastTxIdOfLineageStore, lastTimeOfLineageStore);
                 Thread.sleep(120_000);
                 saveMetaData(db, lineageTracker, timeBasedTracker);
