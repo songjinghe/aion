@@ -71,7 +71,7 @@ public class Main {
                 embeddedDatabaseServer,
                 DB_PATH,
                 1);
-        initMetaData(db, lineageTracker, timeBasedTracker);
+        readMetaData(db, lineageTracker, timeBasedTracker);
 
         System.out.println("server started on port 7687");
         try{
@@ -105,7 +105,7 @@ public class Main {
                 System.out.println("TEST_META node not found, creating...");
                 n = tx.createNode(TEST_META);
                 n.setProperty("TEST_META", "TEST_META");
-                tx.success();
+                tx.commit();
             }else{
                 System.out.println("TEST_META node found, initial...");
                 for(String key : n.getPropertyKeys()){
@@ -138,7 +138,7 @@ public class Main {
                     System.out.println("update TEST_META key("+k+") "+id+" -> "+ v);
                 }
             });
-            tx.success();
+            tx.commit();
         }
     }
 
