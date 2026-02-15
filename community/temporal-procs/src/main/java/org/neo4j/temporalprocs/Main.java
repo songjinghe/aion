@@ -106,6 +106,7 @@ public class Main {
             }else{
                 System.out.println("TEST_META node found, initial...");
                 for(String key : n.getPropertyKeys()){
+                    if("TEST_META".equals(key)) continue;
                     int id = (int) n.getProperty(key);
                     str2id.put(key, id);
                 }
@@ -128,7 +129,7 @@ public class Main {
             str2id.putAll(b.getNamesToIds());
             System.out.println(str2id);
             str2id.forEach((k,v)->{
-                Integer id = (Integer) n.getProperty(k);
+                Integer id = (Integer) n.getProperty(k, null);
                 if(id==null || !id.equals(v)){
                     n.setProperty(k, v);
                     System.out.println("update TEST_META key("+k+") "+id+" -> "+ v);
