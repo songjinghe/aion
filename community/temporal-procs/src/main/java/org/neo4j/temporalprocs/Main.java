@@ -63,12 +63,12 @@ public class Main {
         GraphDatabaseService db = embeddedDatabaseServer.database(DEFAULT_DATABASE_NAME);
         
         registerProcedures(db);
-        var lineageTracker = registerTracker(DB_PATH, 0);
-        var timeBasedTracker = registerTracker(DB_PATH, 1);
+        var lineageTracker = registerTracker(embeddedDatabaseServer, DB_PATH, 0);
+        var timeBasedTracker = registerTracker(embeddedDatabaseServer, DB_PATH, 1);
         readMetaData(db, lineageTracker, timeBasedTracker);
 
-        dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, lineageTracker);
-        dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, timeBasedTracker);
+        embeddedDatabaseServer.registerTransactionEventListener(DEFAULT_DATABASE_NAME, lineageTracker);
+        embeddedDatabaseServer.registerTransactionEventListener(DEFAULT_DATABASE_NAME, timeBasedTracker);
 
         System.out.println("server started on port 7687");
         try{
@@ -151,7 +151,7 @@ public class Main {
             e.printStackTrace();
         }
     }
-    private static HistoryTracker registerTracker(Path dbPath, int type) throws IOException {
+    private static HistoryTracker registerTracker(DatabaseManagementService dbms, Path dbPath, int type) throws IOException {
         var pageCache = (PageCache) dbms.database(DEFAULT_DATABASE_NAME).getPageCache();
         var fs = (FileSystemAbstraction) dbms.database(DEFAULT_DATABASE_NAME).getFileSystem();
         if (type == 0) {
