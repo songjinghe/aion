@@ -124,8 +124,7 @@ public class Main {
             Node n = tx.findNode(TEST_META, "TEST_META", "TEST_META");
             if(n==null){
                 System.out.println("TEST_META node not found, creating...");
-                n = tx.createNode(TEST_META);
-                n.setProperty("TEST_META", "TEST_META");
+                throw new RuntimeException("TEST_META node not found");
             }
             System.out.println("TEST_META node checking...");
             str2id.putAll(a.getNamesToIds());
