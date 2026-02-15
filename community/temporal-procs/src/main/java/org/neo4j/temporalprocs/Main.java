@@ -23,8 +23,8 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Scanner;
-import java.util.concurrent.locks.LockSupport;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -41,6 +41,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.temporalgraph.lineageindex.EntityLineageTracker;
 import org.neo4j.temporalgraph.timeindex.SnapshotCreationPolicy;
 import org.neo4j.temporalgraph.timeindex.timestore.TimeBasedTracker;
+import org.neo4j.temporalgraph.HistoryTracker;
 import org.neo4j.temporalprocs.LineageStoreProcedures;
 import org.neo4j.temporalprocs.TimeStoreProcedures;
 
@@ -50,24 +51,25 @@ public class Main {
     private static EntityLineageTracker lineageTracker = null;
     private static TimeBasedTracker timeBasedTracker = null;
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
 
         var embeddedDatabaseServer = new DatabaseManagementServiceBuilder(DB_PATH)
                 .setConfig(BoltConnector.enabled, true)
-                .setConfig(BoltConnector.listen_address, new SocketAddress("localhost", 7687))
+                .setConfig(BoltConnector.listen_address, new SocketAddress("0.0.0.0", 7687))
                 .build();
         GraphDatabaseService db = embeddedDatabaseServer.database(DEFAULT_DATABASE_NAME);
+        
         registerProcedures(db);
-        registerTracker(
+        var lineageTracker = registerTracker(
                 embeddedDatabaseServer,
                 DB_PATH,
                 0);
-        registerTracker(
+        var timeBasedTracker = registerTracker(
                 embeddedDatabaseServer,
                 DB_PATH,
                 1);
+        initMetaData(db, lineageTracker, timeBasedTracker);
 
-        var input = new Scanner(System.in);
         System.out.println("server started on port 7687");
         try{
             while (true) {
@@ -78,15 +80,66 @@ public class Main {
                 System.out.printf("TimeStore: lastTxId %ld, lastTime %ld; LineageStore: lastTxId %ld, lastTime %ld.%n",
                         lastTxIdOfTimeStore, lastTimeOfTimeStore, lastTxIdOfLineageStore, lastTimeOfLineageStore);
                 Thread.sleep(120_000);
+                saveMetaData(db, lineageTracker, timeBasedTracker);
             }
         } catch (InterruptedException e){
             System.out.println("DB Server interruptted, exiting...");
         }
-
-        closeTrackers();
+        
+        saveMetaData(db, lineageTracker, timeBasedTracker);
+        closeTrackers(embeddedDatabaseServer);
         embeddedDatabaseServer.shutdown();
         System.out.println("DB Server closed. process exit.");
     }
+
+    private static final Label TEST_META = Label.label("TEST_META");
+
+    private static void readMetaData(GraphDatabaseService db, HistoryTracker a, HistoryTracker b){
+        Map<String, Integer> str2id = new HashMap<>();
+        try (Transaction tx = db.beginTx()) {
+            Node n = tx.findNode(TEST_META, "TEST_META", "TEST_META");
+            if(n==null){
+                System.out.println("TEST_META node not found, creating...");
+                n = tx.createNode(TEST_META);
+                n.setProperty("TEST_META", "TEST_META");
+                tx.success();
+            }else{
+                System.out.println("TEST_META node found, initial...");
+                for(String key : n.getPropertyKeys()){
+                    int id = (int) n.getProperty(key);
+                    str2id.put(key, id);
+                }
+                System.out.println(str2id);
+                a.init(str2id);
+                b.init(str2id);
+            }
+        }
+    }
+    private static void saveMetaData(GraphDatabaseService db, HistoryTracker a, HistoryTracker b){
+        Map<String, Integer> str2id = new HashMap<>();
+        try (Transaction tx = db.beginTx()) {
+            Node n = tx.findNode(TEST_META, "TEST_META", "TEST_META");
+            if(n==null){
+                System.out.println("TEST_META node not found, creating...");
+                n = tx.createNode(TEST_META);
+                n.setProperty("TEST_META", "TEST_META");
+            }else{
+                System.out.println("TEST_META node found, checking...");
+                str2id.putAll(a.getNamesToIds());
+                str2id.putAll(b.getNamesToIds());
+                System.out.println(str2id);
+                str2id.forEach((k,v)->{
+                    Integer id = (Integer) n.getProperty(k);
+                    if(id==null || !id.equals(v)){
+                        n.setProperty(k, v);
+                        System.out.println("update TEST_META key("+k+") "+id+" -> "+ v);
+                    }
+                });
+            }
+            tx.success();
+        }
+    }
+
     private static void registerProcedures(GraphDatabaseService db) {
         try {
             DependencyResolver resolver = ((GraphDatabaseAPI) db).getDependencyResolver();
@@ -100,7 +153,7 @@ public class Main {
             e.printStackTrace();
         }
     }
-    private static void registerTracker(DatabaseManagementService dbms, Path dbPath, int type) throws IOException {
+    private static HistoryTracker registerTracker(DatabaseManagementService dbms, Path dbPath, int type) throws IOException {
         var pageCache = (PageCache) dbms.database(DEFAULT_DATABASE_NAME).getPageCache();
         var fs = (FileSystemAbstraction) dbms.database(DEFAULT_DATABASE_NAME).getFileSystem();
         if (type == 0) {
@@ -108,18 +161,22 @@ public class Main {
             var relIndexPath = dbPath.toAbsolutePath().resolve("data/REL_STORE_INDEX");
             lineageTracker = new EntityLineageTracker(pageCache, fs, nodeIndexPath, relIndexPath);
             dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, lineageTracker);
+            return lineageTracker;
         } else if (type == 1) {
             var policy = new SnapshotCreationPolicy(10_000);
             var nodeIndexPath = dbPath.toAbsolutePath().resolve("data/DATA_LOG");
             var relIndexPath = dbPath.toAbsolutePath().resolve("data/TIME_INDEX");
             timeBasedTracker = new TimeBasedTracker(policy, pageCache, fs, nodeIndexPath, relIndexPath);
             dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, timeBasedTracker);
+            return timeBasedTracker;
         } else {
             throw new IllegalArgumentException(String.format("Type %d is not supported", type));
         }
     }
 
-    private static void closeTrackers() throws IOException {
+    private static void closeTrackers(DatabaseManagementService dbms) throws IOException {
+        dbms.unregisterTransactionEventListener(DEFAULT_DATABASE_NAME, lineageTracker);
+        dbms.unregisterTransactionEventListener(DEFAULT_DATABASE_NAME, timeBasedTracker);
         if (lineageTracker != null) {
             lineageTracker.shutdown();
         }

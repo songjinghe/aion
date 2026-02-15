@@ -72,6 +72,16 @@ public abstract class HistoryTracker extends TransactionEventListenerAdapter<Obj
         // relTypeNames.add("CONNECTED");
     }
 
+    public void init(Map<String, Integer> map){
+        namesToIds.putAll(map);
+        map.forEach((k,v)->{
+            idsToNames.put(v, k);
+        });
+    }
+    public Map<String, Integer> getNamesToIds(){
+        return namesToIds;
+    }
+
     @Override
     public Object beforeCommit(TransactionData data, Transaction transaction, GraphDatabaseService databaseService) {
         // Get the encoding of node properties
