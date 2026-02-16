@@ -93,6 +93,12 @@ public class EntityLineageTracker extends HistoryTracker {
     }
 
     public void shutdown() throws IOException {
+        lineageStore.flushIndexes();
         lineageStore.shutdown();
     }
+
+    public void flush() throws IOException {
+        lineageStore.flushIndexes();
+    }
+
 }

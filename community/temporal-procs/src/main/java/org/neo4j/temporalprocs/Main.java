@@ -51,6 +51,7 @@ import org.neo4j.temporalprocs.TimeStoreProcedures;
 public class Main {
 
     private static final Path DB_PATH = Path.of("/database");
+//    private static final Path DB_PATH = Path.of("S:/tgraph/tmpdb/aion");
     private static EntityLineageTracker lineageTracker = null;
     private static TimeBasedTracker timeBasedTracker = null;
 
@@ -79,14 +80,14 @@ public class Main {
                 long lastTimeOfLineageStore = lineageTracker.getLastCommittedTime();
                 System.out.printf("TimeStore: lastTxId %s, lastTime %s; LineageStore: lastTxId %s, lastTime %s.%n",
                         lastTxIdOfTimeStore, lastTimeOfTimeStore, lastTxIdOfLineageStore, lastTimeOfLineageStore);
+                saveMetaData(db);
                 Thread.sleep(120_000);
-                saveMetaData(db, lineageTracker, timeBasedTracker);
             }
         } catch (InterruptedException e){
             System.out.println("DB Server interruptted, exiting...");
         }
         
-        saveMetaData(db, lineageTracker, timeBasedTracker);
+        saveMetaData(db);
         closeTrackers(embeddedDatabaseServer);
         embeddedDatabaseServer.shutdown();
         System.out.println("DB Server closed. process exit.");
@@ -116,7 +117,7 @@ public class Main {
             }
         }
     }
-    private static void saveMetaData(GraphDatabaseService db, HistoryTracker a, HistoryTracker b){
+    private static void saveMetaData(GraphDatabaseService db) throws IOException {
         Map<String, Integer> str2id = new HashMap<>();
         try (Transaction tx = db.beginTx()) {
             Node n = tx.findNode(TEST_META, "TEST_META", "TEST_META");
@@ -125,8 +126,8 @@ public class Main {
                 throw new RuntimeException("TEST_META node not found");
             }
             System.out.println("TEST_META node checking...");
-            str2id.putAll(a.getNamesToIds());
-            str2id.putAll(b.getNamesToIds());
+            str2id.putAll(timeBasedTracker.getNamesToIds());
+            str2id.putAll(lineageTracker.getNamesToIds());
             System.out.println(str2id);
             str2id.forEach((k,v)->{
                 Integer id = (Integer) n.getProperty(k, null);
@@ -137,6 +138,8 @@ public class Main {
             });
             tx.commit();
         }
+        timeBasedTracker.flush();
+        lineageTracker.flush();
     }
 
     private static void registerProcedures(GraphDatabaseService db) {

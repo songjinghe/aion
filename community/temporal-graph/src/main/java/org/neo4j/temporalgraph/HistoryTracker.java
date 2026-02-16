@@ -301,4 +301,6 @@ public abstract class HistoryTracker extends TransactionEventListenerAdapter<Obj
     }
 
     public abstract void shutdown() throws IOException;
+
+    public abstract void flush() throws IOException;
 }

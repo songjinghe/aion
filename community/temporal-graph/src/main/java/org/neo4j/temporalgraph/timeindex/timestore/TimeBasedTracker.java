@@ -93,6 +93,11 @@ public class TimeBasedTracker extends HistoryTracker {
     }
 
     public void shutdown() throws IOException {
+        timeStore.flushIndexes();
         timeStore.shutdown();
+    }
+
+    public void flush() throws IOException {
+        timeStore.flushIndexes();
     }
 }
