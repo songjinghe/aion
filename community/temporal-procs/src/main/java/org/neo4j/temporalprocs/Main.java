@@ -161,12 +161,16 @@ public class Main {
         if (type == 0) {
             var nodeIndexPath = dbPath.toAbsolutePath().resolve("aion-data/lineage/NODE_STORE_INDEX");
             var relIndexPath = dbPath.toAbsolutePath().resolve("aion-data/lineage/REL_STORE_INDEX");
+            if(!Files.exists(nodeIndexPath)) {Files.createDirectories(nodeIndexPath);}
+            if(!Files.exists(relIndexPath))  {Files.createDirectories(relIndexPath);}
             lineageTracker = new EntityLineageTracker(pageCache, fs, nodeIndexPath, relIndexPath);
             return lineageTracker;
         } else if (type == 1) {
             var policy = new SnapshotCreationPolicy(10_000);
             var nodeIndexPath = dbPath.toAbsolutePath().resolve("aion-data/time/DATA_LOG");
             var relIndexPath = dbPath.toAbsolutePath().resolve("aion-data/time/TIME_INDEX");
+            if(!Files.exists(nodeIndexPath)){Files.createDirectories(nodeIndexPath);}
+            if(!Files.exists(relIndexPath)) {Files.createDirectories(relIndexPath);}
             timeBasedTracker = new TimeBasedTracker(policy, pageCache, fs, nodeIndexPath, relIndexPath);
             return timeBasedTracker;
         } else {
