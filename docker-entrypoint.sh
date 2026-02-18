@@ -2,6 +2,7 @@
 
 # start aion server
 function start_db_server() {
+    export MAVEN_OPTS='-Xmx48g -Xms8g'
     cd /db/bin/aion/community/temporal-procs
     mvn -B --offline exec:java -Dexec.mainClass=org.neo4j.temporalprocs.Main
 }

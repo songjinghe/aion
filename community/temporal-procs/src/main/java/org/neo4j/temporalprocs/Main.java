@@ -21,8 +21,10 @@ package org.neo4j.temporalprocs;
 //package org.example;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.net.URI;
+import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.nio.file.Files;
@@ -158,23 +160,30 @@ public class Main {
     private static HistoryTracker registerTracker(DatabaseManagementService dbms, Path dbPath, int type) throws IOException {
         var pageCache = (PageCache) dbms.database(DEFAULT_DATABASE_NAME).getPageCache();
         var fs = (FileSystemAbstraction) dbms.database(DEFAULT_DATABASE_NAME).getFileSystem();
+
+        createDirIfNotExist(dbPath, "aion-data/lineage", "aion-data/time" );
         if (type == 0) {
             var nodeIndexPath = dbPath.toAbsolutePath().resolve("aion-data/lineage/NODE_STORE_INDEX");
             var relIndexPath = dbPath.toAbsolutePath().resolve("aion-data/lineage/REL_STORE_INDEX");
-            if(!Files.exists(nodeIndexPath)) {Files.createDirectories(nodeIndexPath);}
-            if(!Files.exists(relIndexPath))  {Files.createDirectories(relIndexPath);}
             lineageTracker = new EntityLineageTracker(pageCache, fs, nodeIndexPath, relIndexPath);
             return lineageTracker;
         } else if (type == 1) {
             var policy = new SnapshotCreationPolicy(10_000);
             var nodeIndexPath = dbPath.toAbsolutePath().resolve("aion-data/time/DATA_LOG");
             var relIndexPath = dbPath.toAbsolutePath().resolve("aion-data/time/TIME_INDEX");
-            if(!Files.exists(nodeIndexPath)){Files.createDirectories(nodeIndexPath);}
-            if(!Files.exists(relIndexPath)) {Files.createDirectories(relIndexPath);}
             timeBasedTracker = new TimeBasedTracker(policy, pageCache, fs, nodeIndexPath, relIndexPath);
             return timeBasedTracker;
         } else {
             throw new IllegalArgumentException(String.format("Type %d is not supported", type));
+        }
+    }
+
+    private static void createDirIfNotExist(Path root, String ... relativePathList) throws IOException {
+        for(String path : relativePathList){
+            Path abs = root.toAbsolutePath().resolve(path);
+            if(!Files.exists(abs)){
+                Files.createDirectories(abs);
+            }
         }
     }
 
