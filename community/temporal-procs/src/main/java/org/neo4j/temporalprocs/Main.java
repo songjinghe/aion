@@ -84,13 +84,13 @@ public class Main {
                 Thread.sleep(120_000);
             }
         } catch (InterruptedException e){
-            System.out.println("DB Server interruptted, exiting...");
+            System.out.println("DB Server interrupted, exiting...");
+        } finally {
+            saveMetaData(db);
+            closeTrackers(embeddedDatabaseServer);
+            embeddedDatabaseServer.shutdown();
+            System.out.println("DB Server closed. process exit.");
         }
-        
-        saveMetaData(db);
-        closeTrackers(embeddedDatabaseServer);
-        embeddedDatabaseServer.shutdown();
-        System.out.println("DB Server closed. process exit.");
     }
 
     private static final Label TEST_META = Label.label("TEST_META");
@@ -159,14 +159,14 @@ public class Main {
         var pageCache = (PageCache) dbms.database(DEFAULT_DATABASE_NAME).getPageCache();
         var fs = (FileSystemAbstraction) dbms.database(DEFAULT_DATABASE_NAME).getFileSystem();
         if (type == 0) {
-            var nodeIndexPath = dbPath.toAbsolutePath().resolve("data/NODE_STORE_INDEX");
-            var relIndexPath = dbPath.toAbsolutePath().resolve("data/REL_STORE_INDEX");
+            var nodeIndexPath = dbPath.toAbsolutePath().resolve("aion-data/lineage/NODE_STORE_INDEX");
+            var relIndexPath = dbPath.toAbsolutePath().resolve("aion-data/lineage/REL_STORE_INDEX");
             lineageTracker = new EntityLineageTracker(pageCache, fs, nodeIndexPath, relIndexPath);
             return lineageTracker;
         } else if (type == 1) {
             var policy = new SnapshotCreationPolicy(10_000);
-            var nodeIndexPath = dbPath.toAbsolutePath().resolve("data/DATA_LOG");
-            var relIndexPath = dbPath.toAbsolutePath().resolve("data/TIME_INDEX");
+            var nodeIndexPath = dbPath.toAbsolutePath().resolve("aion-data/time/DATA_LOG");
+            var relIndexPath = dbPath.toAbsolutePath().resolve("aion-data/time/TIME_INDEX");
             timeBasedTracker = new TimeBasedTracker(policy, pageCache, fs, nodeIndexPath, relIndexPath);
             return timeBasedTracker;
         } else {
